@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A layout example with a side menu that hides on mobile, just like the Pure website.">
+
+    <title>IMOS Mobile Daily Report</title>
+
+<link rel="stylesheet" href="{{ url_for("static", filename="css/pure-min.css") }}">
+
+<link rel="stylesheet" href="{{ url_for("static", filename="css/layouts/side-menu.css") }}">
+
+<link rel="stylesheet" href="{{ url_for("static", filename="css/jquery.cxcalendar.css") }}">
+<link rel="stylesheet" href="{{ url_for("static", filename="css/toastr.css") }}">
+
+<style type="text/css">
+
+	body{font-family: 新宋体, 微软雅黑, 宋体;}
+	.content_input{width: 100%;margin-top: 20px;min-height: 100px;font-size: 12px;color: #313539;border: 1px #eee solid;padding: 8px}
+	#date-div{position:absolute;bottom:4px; right:4px;}
+	#date_picker{background-color: #3399ff;border: 0px;text-align:center;padding:4px;color:#ffffff;margin-bottom:2px}
+</style>
+
+<script src="{{ url_for("static", filename="js/jquery-1.10.2.min.js") }}"></script>
+<script src="{{ url_for("static", filename="js/jquery.cxcalendar.js") }}"></script>
+<script src="{{ url_for("static", filename="js/jquery.cookie.js") }}"></script>
+<script src="{{ url_for("static", filename="js/toastr.js") }}"></script>
+</head>
+<body>
+
+<div id="layout">
+    <!-- Menu toggle -->
+    <a href="#menu" id="menuLink" class="pure-menu-link">
+        <!-- Hamburger icon -->
+        <span></span>
+    </a>
+
+    <div id="menu">
+        <div class="pure-menu pure-menu-open">
+            <a class="pure-menu-heading" href="#">日报</a>
+
+            <ul>
+	            {% for member in members %}
+	            	{% if name == member.name %}
+						<li  class="pure-menu-selected"><a href="/m/{{member.name}}">{{member.alias.decode("utf-8")}}</a></li>
+					{% else %}
+						<li><a href="/m/{{member.name}}">{{member.alias.decode("utf-8")}}</a></li>
+					{% endif %}
+				{% endfor %}
+               
+               	
+                <li><a href="{{ url_for('report') }}">全部</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="main">
+        <div class="header">
+
+            <h1>Daily Report</h1>
+            <h2>{{name}}</h2>
+        </div>
+
+        <div class="content">
+            <TEXTAREA class="content_input" id="done" placeholder="今日进展">{{done}}</TEXTAREA>
+            <TEXTAREA class="content_input" id="todo" placeholder="明日计划">{{todo}}</TEXTAREA>
+            <TEXTAREA class="content_input" id="risk" placeholder="问题风险">{{risk}}</TEXTAREA>
+			<div style="text-align:center;margin-top:20px; ">
+				<button id="btn-submit" class="pure-button pure-button-primary">提交</button>
+			</div>
+        </div>
+
+        <div id="date-div">
+        	<input id="date_picker" type="text" value="{{today}}" readonly>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+
+
+
+	var getDaily = function(){
+		$.post("/m/{{name}}", 
+			{
+				act:"get",
+				date: $("#date_picker").val()
+			}, 
+			function(data) {
+				$("#done").val(data.result.done);
+				$("#todo").val(data.result.todo);
+				$("#risk").val(data.result.risk);
+		});
+	}
+
+	$(document).ready(function(){
+		$(document).on('keydown', function(e){
+		    if(e.ctrlKey && e.which === 83){ 
+		        
+				$.post("/m/{{name}}", 
+					{
+						act:"set",
+						done: $("#done").val(),
+						todo: $("#todo").val(), 
+						risk: $("#risk").val(), 
+						date: $("#date_picker").val()
+					}, 
+					function(data) {
+						toastr.success('已提交');
+				});
+				
+		        return false;
+		    }
+		});
+
+		if ($.cookie('d'))
+		{
+			$("#date_picker").val($.cookie('d'));
+		}
+
+		$("#date_picker").cxCalendar();
+
+		$("#date_picker").change(function(){
+			var date = new Date();
+			date.setTime(date.getTime() + (300 * 60 * 1000));   //5小时过期            
+			$.cookie('d', $("#date_picker").val(), {expires:date, path:'/'});
+
+
+			getDaily();
+		});	
+
+		
+		
+
+		$("#btn-submit").click(function(){
+			$.post("/m/{{name}}", 
+				{
+					act:"set",
+					done: $("#done").val(),
+					todo: $("#todo").val(), 
+					risk: $("#risk").val(), 
+					date: $("#date_picker").val()
+				}, 
+				function(data) {
+					toastr.success('已提交');
+			});
+		});
+
+
+		getDaily();
+
+		toastr.info("支持 Ctrl+S 保存哦")
+		
+
+	});
+
+	
+	
+</script>
+</body>
+</html>

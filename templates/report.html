@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A layout example with a side menu that hides on mobile, just like the Pure website.">
+
+    <title>IMOS Mobile Daily Report</title>
+
+<link rel="stylesheet" href="{{ url_for("static", filename="css/pure-min.css") }}">
+<link rel="stylesheet" href="{{ url_for("static", filename="css/layouts/side-menu.css") }}">
+<link rel="stylesheet" href="{{ url_for("static", filename="css/jquery.cxcalendar.css") }}">
+<link rel="stylesheet" href="{{ url_for("static", filename="css/markdown.css") }}">
+
+<style type="text/css">
+	body{font-family: 新宋体, 微软雅黑, 宋体;}
+	#report-div{padding-left: 1px}
+	#report{width: 100%; min-height: 100px;font-size: 12px;color: #313539;}
+	#report th{text-align: left;padding: 15px 0 15px 8px;color:#FFFFFF;background-color: #27ae60;font-size: 16px;}
+	#report td{text-align: left;padding: 4px 0 4px 8px;color:#575757;background-color: #FCFCFC;font-size: 13px;border-bottom: 1px #EEE solid}
+	#date-div{position:absolute;bottom:4px; right:4px;}
+	#date_picker{background-color: #3399ff;border: 0px;text-align:center;padding:4px;color:#ffffff;margin-bottom:2px}
+</style>
+
+<script src="{{ url_for("static", filename="js/jquery-1.10.2.min.js") }}"></script>
+<script src="{{ url_for("static", filename="js/jquery.cxcalendar.js") }}"></script>
+<script src="{{ url_for("static", filename="js/jquery.cookie.js") }}"></script>
+<script src="{{ url_for("static", filename="js/marked.js") }}"></script>
+</head>
+<body>
+
+<div id="layout">
+    <!-- Menu toggle -->
+    <a href="#menu" id="menuLink" class="pure-menu-link">
+        <!-- Hamburger icon -->
+        <span></span>
+    </a>
+
+    <div id="menu">
+        <div class="pure-menu pure-menu-open">
+            <a class="pure-menu-heading" href="#">日报</a>
+
+            <ul>
+	            {% for member in members %}
+					<li><a href="/m/{{member['name']}}">{{member['alias'].decode("utf-8")}}</a></li>
+				{% endfor %}
+               
+                <li class="pure-menu-selected"><a href="{{ url_for('report') }} ">全部</a></li>
+
+            </ul>
+        </div>
+    </div>
+
+    <div id="main">
+
+        <div id="date-div">
+        	<input id="date_picker" type="text" value="{{today}}" readonly>
+        </div>
+
+		<div id="report-div">
+			<table id="report">
+			<thead><th style="width:10%">姓名</th><th style="width:40%">今日进展</th><th style="width:30%">明日计划</th><th style="width:20%">问题风险</th></thead>
+			<tbody id="report-content">
+				<tr><td></td></tr>
+			</tbody>
+		</table>
+		</div>
+		
+
+        
+    </div>
+</div>
+<script type="text/javascript">
+
+	var getDailys = function(){
+		$.post("/report", 
+			{
+				date: $("#date_picker").val()
+			}, 
+			function(data) {
+				var str = '';
+				for (var i = 0; i < data.result.length; i++)
+				{
+					str += "<tr>" + "<td>" + data.result[i].name + "</td> " + "<td>" + marked.parser(marked.lexer(data.result[i].done)) + "</td> " + "<td>" + marked.parser(marked.lexer(data.result[i].todo)) + "</td> " + "<td style='color:red'>" + marked.parser(marked.lexer(data.result[i].risk)) + "</td> " + "</tr>"
+				}
+				$("#report-content").html(str);
+		});
+	}
+
+	$(document).ready(function(){
+
+		if ($.cookie('d'))
+		{
+			$("#date_picker").val($.cookie('d'));
+		}
+
+		$("#date_picker").cxCalendar();
+		
+
+		$("#date_picker").change(function(){
+			var date = new Date();
+			date.setTime(date.getTime() + (300 * 60 * 1000));   //5小时过期
+
+			$.cookie('d', $("#date_picker").val(), {expires:date, path:'/'});
+
+			getDailys();
+		});
+
+
+		getDailys();
+	});
+
+	
+	
+</script>
+</body>
+</html>
